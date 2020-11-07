@@ -51,7 +51,8 @@ async fn handle_phone(
 
     match attempts.get_code(body.phone) {
         PhoneResult::Success(count) => format!("You have {} tries", count),
-        PhoneResult::Exists(count, last_attemped_at) => format!("You have {} tries, retry at {:?}", count, last_attemped_at),
+        PhoneResult::Exists(count, next_attempt_at) => format!("You have {} tries, retry at {:?}", count, next_attempt_at),
+        PhoneResult::TooSoon(next_attempt_at) => format!("Retry at {:?}", next_attempt_at),
         PhoneResult::InvalidPhone => format!("dafaq are you doing")
     }
 }
@@ -76,8 +77,8 @@ async fn handle_code(
         CodeResult::InvalidPhone => format!("dafaq are you doing"),
         CodeResult::NotFound => format!("Phone {} not found, you might wanna try /request/code", body.phone),
         CodeResult::Expired => format!("Code request is expired"),
-        CodeResult::OutOfAttempts(next_attempt_at) => format!("{:?}", next_attempt_at),
-        CodeResult::Invalid(attempts_left) => format!("You have {} attempts left", attempts_left),
+        CodeResult::OutOfAttempts(next_attempt_at) => format!("You're out of attempts. Consider requesting new code at {:?}", next_attempt_at),
+        CodeResult::Invalid(attempts_left) => format!("Code invalid. You have {} attempts left", attempts_left),
         CodeResult::Valid => format!("you lucky dawg")
     }
 }

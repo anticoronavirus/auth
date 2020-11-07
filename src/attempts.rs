@@ -41,12 +41,11 @@ impl PhonesNCodes for Attempts {
                 Entry::Vacant(_) => CodeResult::NotFound,
                 Entry::Occupied(mut entry) => {
                     let attempt = entry.get_mut();
-                    attempt.count = 1;
                     match attempt {
-                        attempt if attempt.last_attemped_at.elapsed().unwrap() > Duration::new(10, 0) =>
+                        attempt if attempt.last_attemped_at.elapsed().unwrap() > Duration::from_secs(10) =>
                             CodeResult::Expired,
                         attempt if attempt.count == 0 =>
-                            CodeResult::OutOfAttempts(attempt.last_attemped_at + Duration::new(10, 0)),
+                            CodeResult::OutOfAttempts(attempt.last_attemped_at + Duration::from_secs(10)),
                         attempt if attempt.code == code => {
                             entry.remove_entry();
                             CodeResult::Valid
@@ -64,17 +63,20 @@ impl PhonesNCodes for Attempts {
     fn get_code(&mut self, phone: Phone) -> PhoneResult {
         match check_phone(phone) {
             false => PhoneResult::InvalidPhone,
-            true => {
-                let attempt = &mut self.entry(phone).or_insert(Attempt::default());
-                match attempt.code {
-                    0 => match attempt.last_attemped_at.elapsed().unwrap() > Duration::new(10, 0) {
-                        true => {
-                            **attempt = Attempt::default();
-                            PhoneResult::Success(attempt.count)
-                        }
-                        false => PhoneResult::Exists(attempt.count, attempt.last_attemped_at)
-                    }
-                    _ => PhoneResult::Success(attempt.count)
+            true => match self.entry(phone) {
+                Entry::Vacant(entry) => {
+                    let Attempt { count, .. } = entry.insert(Attempt::default());
+                    PhoneResult::Success(*count)
+                },
+                Entry::Occupied(mut entry) => match entry.get() {
+                    attempt if attempt.last_attemped_at.elapsed().unwrap() > Duration::from_secs(10) => {
+                        let Attempt { count, .. } = entry.insert(Attempt::default());
+                        PhoneResult::Success(count)
+                    },
+                    attempt if attempt.count == 0 =>
+                        PhoneResult::TooSoon(attempt.last_attemped_at + Duration::from_secs(10)),
+                    attempt =>
+                        PhoneResult::Exists(attempt.count, attempt.last_attemped_at + Duration::from_secs(10))
                 }
             }
         }
@@ -93,6 +95,7 @@ pub enum CodeResult {
 pub enum PhoneResult {
     Success(Count),
     Exists(Count, SystemTime),
+    TooSoon(SystemTime),
     InvalidPhone
 }
 
