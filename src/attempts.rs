@@ -5,15 +5,15 @@ use rand::{Rng};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-pub type Count = u8;
+type Count = u8;
 pub type Code = u16;
 pub type Phone = u64;
 
 #[derive(Deserialize)]
 pub struct Attempt {
-    pub count: Count,
-    pub last_attemped_at: SystemTime,
-    pub code: Code
+    count: Count,
+    last_attemped_at: SystemTime,
+    code: Code
 }
 
 impl Default for Attempt {
