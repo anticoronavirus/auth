@@ -53,7 +53,10 @@ impl PhonesNCodes for Attempts {
                         _ => {
                             attempt.count = attempt.count - 1;
                             attempt.last_attemped_at = SystemTime::now();
-                            CodeResult::Invalid(attempt.count)
+                            match attempt.count {
+                                count if count > 0 => CodeResult::Invalid(count),
+                                _ => CodeResult::OutOfAttempts(attempt.last_attemped_at + Duration::from_secs(10))
+                            }
                         }
                     }
                 }
@@ -65,13 +68,13 @@ impl PhonesNCodes for Attempts {
             false => PhoneResult::InvalidPhone,
             true => match self.entry(phone) {
                 Entry::Vacant(entry) => {
-                    let Attempt { count, .. } = entry.insert(Attempt::default());
-                    PhoneResult::Success(*count)
+                    let attempt = entry.insert(Attempt::default());
+                    PhoneResult::Success(attempt.count)
                 },
-                Entry::Occupied(mut entry) => match entry.get() {
+                Entry::Occupied(mut entry) => match &entry.get() {
                     attempt if attempt.last_attemped_at.elapsed().unwrap() > Duration::from_secs(10) => {
-                        let Attempt { count, .. } = entry.insert(Attempt::default());
-                        PhoneResult::Success(count)
+                        entry.insert(Attempt::default());
+                        PhoneResult::Success(entry.get().count)
                     },
                     attempt if attempt.count == 0 =>
                         PhoneResult::TooSoon(attempt.last_attemped_at + Duration::from_secs(10)),
@@ -100,5 +103,5 @@ pub enum PhoneResult {
 }
 
 fn check_phone(phone: Phone) -> bool {
-    phone < 79000000000
+    phone < 79000000000 || phone > 79999999999
 }

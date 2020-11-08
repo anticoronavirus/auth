@@ -29,7 +29,7 @@ async fn main() -> std::io::Result<()> {
             .route("/code", web::post().to(handle_phone))
             .route("/token", web::post().to(handle_code))
     })
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
@@ -67,7 +67,7 @@ async fn handle_code(
     data: web::Data<AppState>,
     body: web::Json<CodeData>
 ) -> String {
-    
+
     let mut attempts = match data.attempts.lock() {
         Ok(attempts) => attempts,
         Err(poisoned) => poisoned.into_inner()
